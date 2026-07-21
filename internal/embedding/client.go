@@ -10,13 +10,15 @@ import (
 )
 
 const (
-	defaultModel   = "text-embedding-3-small"
+	defaultModel   = "text-embedding-3-large"
 	defaultBaseURL = "https://api.openai.com/v1"
 	maxBatchSize   = 2048
 
-	// Dimensions uses the model's matryoshka truncation: 512 dims keeps
-	// similarity quality while cutting memory and transfer 3x vs 1536.
-	Dimensions = 512
+	// text-embedding-3-large native dimension. Full-fat vector — the
+	// small model at 512 dim gave nonsense pairs like fotka × fotbal
+	// (subword prefix bias); the larger model at native width separates
+	// morphologically similar but semantically unrelated Czech words.
+	Dimensions = 3072
 )
 
 type Client struct {
