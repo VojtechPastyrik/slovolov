@@ -2,8 +2,12 @@
 /dist/
 /web/node_modules/
 /web/dist/
-/corpus/*.txt
-!/corpus/README.md
+
+# Raw frequency source (huge, redownloadable). The filtered noun corpus
+# (cs.txt) IS committed so the Docker image can boot.
+/corpus/cs_50k.txt
+/corpus/*.raw
+
 .env
 .env.local
 .idea/
