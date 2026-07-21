@@ -1,14 +1,24 @@
 {{- if .Values.precompute.enabled }}
+# One-off Job that warms the Dragonfly embedding cache from the baked-in
+# corpus. Runs as a post-install/upgrade hook under both Helm (native
+# `helm.sh/hook`) and ArgoCD (`argocd.argoproj.io/hook: PostSync`), which
+# uses its own hook system and ignores Helm hook annotations.
+#
+# Stable name + BeforeHookCreation delete policy so the previous run's
+# Job is removed before a new one is created, which works for both
+# `helm upgrade` and `argocd app sync`.
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ include "slovolov.fullname" . }}-precompute-{{ .Release.Revision }}
+  name: {{ include "slovolov.fullname" . }}-precompute
   labels:
     {{- include "slovolov.labels" . | nindent 4 }}
   annotations:
-    "helm.sh/hook": post-install,post-upgrade
-    "helm.sh/hook-weight": "5"
-    "helm.sh/hook-delete-policy": before-hook-creation
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "5"
+    helm.sh/hook-delete-policy: before-hook-creation
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
 spec:
   ttlSecondsAfterFinished: {{ .Values.precompute.ttlSecondsAfterFinished }}
   backoffLimit: 2
