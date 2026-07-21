@@ -45,11 +45,25 @@ dragonfly:
   # Address the app connects to. Defaults to `<name>.<namespace>:6379`.
   addressOverride: ""
 
+# Embedding provider selection. Set to `cohere` to use Cohere v3
+# multilingual (recommended for Czech — less subword-prefix bias than
+# OpenAI on non-English text). Default `openai` uses text-embedding-3-large.
+embedProvider: openai
+
 openai:
   # Provide via --set-string openai.apiKey=sk-... OR reference an existing secret.
   apiKey: ""
   existingSecret: ""
   existingSecretKey: openai-api-key
+
+cohere:
+  # Provide via --set-string cohere.apiKey=... OR reference an existing secret.
+  apiKey: ""
+  existingSecret: ""
+  existingSecretKey: cohere-api-key
+  # Override the model / input type if needed. Defaults match the Go client.
+  model: ""
+  inputType: ""
 
 # One-off Job that fills the Dragonfly embedding cache from the baked-in corpus.
 # Runs on helm install/upgrade. Idempotent — skips words already cached.

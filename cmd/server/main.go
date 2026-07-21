@@ -18,12 +18,12 @@ func main() {
 	corpusPath := getenv("CORPUS_PATH", "corpus/cs.txt")
 	redisAddr := getenv("REDIS_ADDR", "127.0.0.1:6379")
 	redisPassword := os.Getenv("REDIS_PASSWORD")
-	openaiKey := os.Getenv("OPENAI_API_KEY")
 	addr := getenv("HTTP_ADDR", ":8080")
 	staticDir := getenv("STATIC_DIR", "web/dist")
 
-	if openaiKey == "" {
-		log.Fatal("OPENAI_API_KEY is required")
+	emb, err := embedding.NewFromEnv()
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	words, err := corpus.Load(corpusPath)
@@ -59,7 +59,6 @@ func main() {
 	}
 	log.Printf("loaded %d cached vectors", len(vectors))
 
-	emb := embedding.NewClient(openaiKey)
 	svc := game.NewService(st, emb, words, vectors)
 
 	mux := http.NewServeMux()

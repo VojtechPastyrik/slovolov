@@ -20,9 +20,9 @@ func main() {
 	)
 	flag.Parse()
 
-	openaiKey := os.Getenv("OPENAI_API_KEY")
-	if openaiKey == "" {
-		log.Fatal("OPENAI_API_KEY is required")
+	emb, err := embedding.NewFromEnv()
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	words, err := corpus.Load(*corpusPath)
@@ -57,7 +57,6 @@ func main() {
 	}
 	log.Printf("embedding %d words in batches of %d", len(todo), *batch)
 
-	emb := embedding.NewClient(openaiKey)
 	for start := 0; start < len(todo); start += *batch {
 		end := min(start+*batch, len(todo))
 		chunk := todo[start:end]

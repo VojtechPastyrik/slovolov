@@ -51,3 +51,52 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 openai-api-key
 {{- end -}}
 {{- end -}}
+
+{{- define "slovolov.cohereSecretName" -}}
+{{- if .Values.cohere.existingSecret -}}
+{{ .Values.cohere.existingSecret }}
+{{- else -}}
+{{ include "slovolov.fullname" . }}-cohere
+{{- end -}}
+{{- end -}}
+
+{{- define "slovolov.cohereSecretKey" -}}
+{{- if .Values.cohere.existingSecret -}}
+{{ .Values.cohere.existingSecretKey }}
+{{- else -}}
+cohere-api-key
+{{- end -}}
+{{- end -}}
+
+{{/*
+Render the embedding provider env block. Emits EMBED_PROVIDER plus the
+provider-specific key + optional model/input-type overrides. Skips
+providers that don't have credentials configured so a Deployment
+manifest doesn't reference missing secrets.
+*/}}
+{{- define "slovolov.embedEnv" -}}
+- name: EMBED_PROVIDER
+  value: {{ .Values.embedProvider | quote }}
+{{- if or .Values.openai.apiKey .Values.openai.existingSecret }}
+- name: OPENAI_API_KEY
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "slovolov.openaiSecretName" . }}
+      key: {{ include "slovolov.openaiSecretKey" . }}
+{{- end }}
+{{- if or .Values.cohere.apiKey .Values.cohere.existingSecret }}
+- name: COHERE_API_KEY
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "slovolov.cohereSecretName" . }}
+      key: {{ include "slovolov.cohereSecretKey" . }}
+{{- if .Values.cohere.model }}
+- name: COHERE_MODEL
+  value: {{ .Values.cohere.model | quote }}
+{{- end }}
+{{- if .Values.cohere.inputType }}
+- name: COHERE_INPUT_TYPE
+  value: {{ .Values.cohere.inputType | quote }}
+{{- end }}
+{{- end }}
+{{- end -}}

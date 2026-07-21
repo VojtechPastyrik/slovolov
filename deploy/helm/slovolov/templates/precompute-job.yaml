@@ -47,11 +47,7 @@ spec:
             - -batch
             - {{ .Values.precompute.batch | quote }}
           env:
-            - name: OPENAI_API_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "slovolov.openaiSecretName" . }}
-                  key: {{ include "slovolov.openaiSecretKey" . }}
+            {{- include "slovolov.embedEnv" . | nindent 12 }}
           resources:
             {{- toYaml .Values.precompute.resources | nindent 12 }}
 {{- end }}

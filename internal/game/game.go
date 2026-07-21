@@ -31,7 +31,7 @@ const MaxHints = 3
 
 type Service struct {
 	store    *store.Store
-	embedder *embedding.Client
+	embedder embedding.Embedder
 
 	corpus        []string
 	corpusVectors map[string][]float32
@@ -41,7 +41,7 @@ type Service struct {
 	canonical map[string]string
 }
 
-func NewService(st *store.Store, emb *embedding.Client, corpus []string, vectors map[string][]float32) *Service {
+func NewService(st *store.Store, emb embedding.Embedder, corpus []string, vectors map[string][]float32) *Service {
 	canonical := make(map[string]string, len(corpus))
 	for _, w := range corpus {
 		canonical[stripDiacritics(w)] = w
