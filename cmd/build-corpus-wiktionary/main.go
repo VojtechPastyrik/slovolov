@@ -37,16 +37,19 @@ import (
 )
 
 type kaikkiEntry struct {
-	Word          string       `json:"word"`
-	POS           string       `json:"pos"`
-	Lang          string       `json:"lang"`
-	LangCode      string       `json:"lang_code"`
+	Word          string        `json:"word"`
+	POS           string        `json:"pos"`
+	Lang          string        `json:"lang"`
+	LangCode      string        `json:"lang_code"`
 	Senses        []kaikkiSense `json:"senses"`
-	HeadTemplates []kaikkiTpl  `json:"head_templates"`
+	HeadTemplates []kaikkiTpl   `json:"head_templates"`
+	RawTags       []string      `json:"raw_tags"`
 }
 
 type kaikkiSense struct {
-	Tags []string `json:"tags"`
+	Tags    []string `json:"tags"`
+	RawTags []string `json:"raw_tags"`
+	Glosses []string `json:"glosses"`
 }
 
 type kaikkiTpl struct {
@@ -85,6 +88,46 @@ var senseTagBlockers = map[string]struct{}{
 // one, put it in corpus/cs-supplement.txt.
 var verbalNounSuffixes = []string{"ání", "ení", "ění", "tí"}
 
+// rawTagBlockers are Czech-language markers Kaikki writes into `raw_tags`
+// (the pass-through fields taken from the source Wiktionary templates,
+// not the normalized English tags). They mark entries we don't want.
+var rawTagBlockers = map[string]struct{}{
+	"vlastní":    {}, // "vlastní jméno" — proper name
+	"jméno":      {},
+	"příjmení":   {}, // surname
+	"přezdívka":  {}, // nickname
+	"archaický":  {},
+	"archaicky":  {},
+	"zastaralý":  {},
+	"zastarale":  {},
+	"knižně":     {}, // literary/bookish
+	"nářeční":    {},
+	"nářečně":    {},
+	"hanlivě":    {}, // pejorative
+	"vulgárně":   {},
+	"zhruběle":   {},
+	"expresivně": {},
+	"onomatopoické": {},
+	"zkratka":    {},
+	"iniciálová zkratka": {},
+}
+
+// glossBlockerSubstrings triggers if any sense's gloss contains one of
+// these Czech phrases (case-folded). Catches proper names that lack the
+// raw_tag but describe themselves as "křestní jméno" etc. in the gloss.
+var glossBlockerSubstrings = []string{
+	"křestní jméno",
+	"mužské křestní jméno",
+	"ženské křestní jméno",
+	"příjmení",
+	"jméno rodu",
+	"jméno města",
+	"jméno obce",
+	"jméno postavy",
+	"vlastní jméno",
+	"personifikace",
+}
+
 // posBlockers rejects any Kaikki `pos` value that isn't a plain common
 // noun. Kaikki records proper nouns as "name".
 var posBlockers = map[string]struct{}{
@@ -96,7 +139,8 @@ var posBlockers = map[string]struct{}{
 func main() {
 	var (
 		inPath       = flag.String("in", "corpus/kaikki-cs.jsonl", "Kaikki JSONL for Czech (from https://kaikki.org/dictionary/Czech/)")
-		freqPath     = flag.String("frequency", "corpus/cs_50k.txt", "optional frequency list; entries present here come first, in frequency order")
+		freqPath     = flag.String("frequency", "corpus/cs_50k.txt", "frequency list — when set, output is restricted to lemmas that appear here (avoids obscure Wiktionary tail words)")
+		keepUnranked = flag.Bool("keep-unranked", false, "also emit Wiktionary lemmas that do not appear in the frequency list (huge, includes archaic/regional words)")
 		outPath      = flag.String("out", "corpus/cs.txt", "output path — one noun lemma per line")
 		supplement   = flag.String("supplement", "corpus/cs-supplement.txt", "extra lemmas to include (optional, missing file is OK)")
 		blockPath    = flag.String("block", "corpus/cs-block.txt", "lemmas to strip (optional, missing file is OK)")
@@ -129,7 +173,7 @@ func main() {
 		delete(nouns, w)
 	}
 
-	ordered, err := orderByFrequency(nouns, *freqPath)
+	ordered, err := orderByFrequency(nouns, *freqPath, *keepUnranked)
 	if err != nil {
 		log.Fatalf("order by frequency: %v", err)
 	}
@@ -176,6 +220,9 @@ func parseKaikki(path string) (map[string]struct{}, error) {
 		if e.POS != "noun" {
 			continue
 		}
+		if hasBlockedRawTag(e.RawTags) {
+			continue
+		}
 		if !hasKeepableSense(e.Senses) {
 			continue
 		}
@@ -208,21 +255,47 @@ func parseKaikki(path string) (map[string]struct{}, error) {
 }
 
 // hasKeepableSense returns true if at least one sense of an entry lacks
-// blocker tags. Some legitimate common nouns carry a form-of or slang
+// blocker markers (English tags, Czech raw_tags, or blocker phrases in
+// the gloss). Some legitimate common nouns carry a form-of or slang
 // sense alongside the primary meaning; those are still valid words.
 func hasKeepableSense(senses []kaikkiSense) bool {
 	if len(senses) == 0 {
-		return true // no sense info — assume ok
+		return true
 	}
 	for _, s := range senses {
-		blocked := false
-		for _, tag := range s.Tags {
-			if _, bad := senseTagBlockers[tag]; bad {
-				blocked = true
-				break
+		if senseBlocked(s) {
+			continue
+		}
+		return true
+	}
+	return false
+}
+
+func senseBlocked(s kaikkiSense) bool {
+	for _, tag := range s.Tags {
+		if _, bad := senseTagBlockers[tag]; bad {
+			return true
+		}
+	}
+	for _, tag := range s.RawTags {
+		if _, bad := rawTagBlockers[strings.ToLower(tag)]; bad {
+			return true
+		}
+	}
+	for _, gloss := range s.Glosses {
+		lower := strings.ToLower(gloss)
+		for _, sub := range glossBlockerSubstrings {
+			if strings.Contains(lower, sub) {
+				return true
 			}
 		}
-		if !blocked {
+	}
+	return false
+}
+
+func hasBlockedRawTag(rawTags []string) bool {
+	for _, tag := range rawTags {
+		if _, bad := rawTagBlockers[strings.ToLower(tag)]; bad {
 			return true
 		}
 	}
@@ -249,9 +322,11 @@ func hasProperHeadTemplate(tpls []kaikkiTpl) bool {
 	return false
 }
 
-// orderByFrequency returns lemmas in frequency-first order, then the
-// remaining unmatched lemmas in alphabetical order for stability.
-func orderByFrequency(nouns map[string]struct{}, freqPath string) ([]string, error) {
+// orderByFrequency returns lemmas ordered by descending frequency. Unless
+// keepUnranked is true, Wiktionary lemmas missing from the frequency list
+// are dropped — the intent is that only words common enough to appear in
+// everyday Czech (present in the subtitle-derived frequency list) survive.
+func orderByFrequency(nouns map[string]struct{}, freqPath string, keepUnranked bool) ([]string, error) {
 	var ordered []string
 	used := make(map[string]struct{}, len(nouns))
 
@@ -288,9 +363,13 @@ func orderByFrequency(nouns map[string]struct{}, freqPath string) ([]string, err
 		}
 	}
 
+	if !keepUnranked {
+		return ordered, nil
+	}
+
 	// Append remaining unmatched lemmas (Wiktionary noun that wasn't in
-	// the frequency list) — keep the corpus complete even if the frequency
-	// source misses less common words.
+	// the frequency list) — for callers that want the complete Wiktionary
+	// vocabulary regardless of usage frequency.
 	var rest []string
 	for w := range nouns {
 		if _, already := used[w]; already {
@@ -298,10 +377,8 @@ func orderByFrequency(nouns map[string]struct{}, freqPath string) ([]string, err
 		}
 		rest = append(rest, w)
 	}
-	// Sort for deterministic output.
 	sortStrings(rest)
-	ordered = append(ordered, rest...)
-	return ordered, nil
+	return append(ordered, rest...), nil
 }
 
 func sortStrings(s []string) {
