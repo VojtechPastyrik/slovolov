@@ -14,12 +14,15 @@ metadata:
   labels:
     {{- include "slovolov.labels" . | nindent 4 }}
   annotations:
+    # PreSync so the Job runs *before* Argo applies the server Deployment.
+    # PostSync would deadlock: the server pod crash-loops without cached
+    # embeddings, Sync phase never reports healthy, and Argo never
+    # advances to PostSync — so the Job would never run.
+    #
     # ArgoCD hook only. Older Argo releases strip resources that also
-    # carry helm.sh/hook — the Job then disappears from the sync
-    # manifest and Dragonfly never gets its embeddings. For direct
-    # `helm install` (no Argo) run precompute manually:
-    #   kubectl apply -f - <<< "$(helm template ... | yq 'select(.kind=="Job")')"
-    argocd.argoproj.io/hook: PostSync
+    # carry helm.sh/hook — the Job then disappears from the sync manifest
+    # and Dragonfly never gets its embeddings.
+    argocd.argoproj.io/hook: PreSync
     argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
 spec:
   ttlSecondsAfterFinished: {{ .Values.precompute.ttlSecondsAfterFinished }}
