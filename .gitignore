@@ -6,6 +6,9 @@
 # Raw frequency source (huge, redownloadable). The filtered noun corpus
 # (cs.txt) IS committed so the Docker image can boot.
 /corpus/cs_50k.txt
+/corpus/cs_full.txt
+/corpus/kaikki-cs.jsonl
+/corpus/kaikki-cs.jsonl.gz
 /corpus/*.raw
 
 .env

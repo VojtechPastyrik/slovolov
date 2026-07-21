@@ -1,0 +1,169 @@
+# Extra Czech noun lemmas to guarantee in the corpus, regardless of
+# whether the frequency source contains them or UDPipe tags them
+# correctly. These are still passed through UDPipe so only entries that
+# tag as NOUN + Sing + Nom survive — write them in the nominative
+# singular form.
+#
+# One lemma per line. Blank lines and lines starting with # are ignored.
+# Comparison is lowercase, diacritics preserved.
+
+# --- weapons / tools ---
+luk
+meč
+šíp
+kopí
+štít
+nůž
+sekera
+kladivo
+dláto
+pila
+šroubovák
+kleště
+lopata
+hrábě
+kosa
+srp
+
+# --- vehicles ---
+vůz
+kolo
+loď
+letadlo
+raketa
+tank
+kombajn
+traktor
+kočár
+sáně
+
+# --- animals commonly missing from subtitles ---
+lasice
+kuna
+jezevec
+tchoř
+srnec
+kanec
+divočák
+sup
+sova
+volavka
+čáp
+straka
+sojka
+strnad
+ještěrka
+mlok
+salamandr
+ropucha
+škorpion
+hlemýžď
+slimák
+mravenec
+včela
+vosa
+sršeň
+komár
+moucha
+motýl
+brouk
+štír
+
+# --- household items ---
+židle
+křeslo
+pohovka
+skříň
+prádelník
+komoda
+police
+knihovna
+polštář
+peřina
+prostěradlo
+ručník
+utěrka
+mýdlo
+kartáček
+hřeben
+zrcadlo
+váza
+svíčka
+lampa
+lustr
+
+# --- kitchen / food ---
+talíř
+miska
+hrnec
+pánev
+naběračka
+vařečka
+struhadlo
+mlýnek
+konvice
+skleník
+sklenice
+džbán
+koření
+sůl
+pepř
+cukr
+mouka
+těsto
+kvasnice
+droždí
+
+# --- nature ---
+skála
+kámen
+kotlina
+propast
+soutěska
+mýtina
+paseka
+močál
+bažina
+tůň
+tůňka
+pramen
+studna
+studánka
+gejzír
+sopka
+kráter
+lavina
+sesuv
+
+# --- concrete objects ---
+lano
+provaz
+řetěz
+hák
+šňůra
+knoflík
+zip
+suchý zip
+špendlík
+jehla
+nit
+kordel
+plachta
+stan
+spacák
+batoh
+brašna
+
+# --- games / hobby ---
+mince
+karta
+kostka
+šachy
+puzzle
+hlavolam
+skládačka
+loutka
+maňásek
+pastelka
+štětec
+plátno
