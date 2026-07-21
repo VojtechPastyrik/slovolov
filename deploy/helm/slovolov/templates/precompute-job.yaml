@@ -1,0 +1,42 @@
+{{- if .Values.precompute.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "slovolov.fullname" . }}-precompute-{{ .Release.Revision }}
+  labels:
+    {{- include "slovolov.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "5"
+    "helm.sh/hook-delete-policy": before-hook-creation
+spec:
+  ttlSecondsAfterFinished: {{ .Values.precompute.ttlSecondsAfterFinished }}
+  backoffLimit: 2
+  template:
+    metadata:
+      labels:
+        {{- include "slovolov.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: precompute
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: precompute
+          image: {{ include "slovolov.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["/app/precompute"]
+          args:
+            - -corpus
+            - {{ .Values.precompute.corpusPath }}
+            - -redis
+            - {{ include "slovolov.dragonflyAddress" . | quote }}
+            - -batch
+            - {{ .Values.precompute.batch | quote }}
+          env:
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "slovolov.openaiSecretName" . }}
+                  key: {{ include "slovolov.openaiSecretKey" . }}
+          resources:
+            {{- toYaml .Values.precompute.resources | nindent 12 }}
+{{- end }}

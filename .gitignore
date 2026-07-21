@@ -1,0 +1,10 @@
+/bin/
+/dist/
+/web/node_modules/
+/web/dist/
+/corpus/*.txt
+!/corpus/README.md
+.env
+.env.local
+.idea/
+.DS_Store

@@ -1,0 +1,56 @@
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+  background: #0f1013;
+  color: #e9e9ec;
+  font-family: 'Space Grotesk', system-ui, -apple-system, Segoe UI, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background: radial-gradient(120% 80% at 50% -10%, #191b21 0%, #0f1013 60%);
+  background-attachment: fixed;
+}
+
+::selection {
+  background: #f4b942;
+  color: #0f1013;
+}
+
+a {
+  color: #f4b942;
+  text-decoration: none;
+}
+
+a:hover {
+  color: #ffcf6b;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+input {
+  font-family: inherit;
+}
+
+@keyframes slv-pop {
+  0% { transform: scale(.94); opacity: 0; }
+  60% { transform: scale(1.02); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes slv-rise {
+  from { transform: translateY(14px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes slv-fadein {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

@@ -1,0 +1,12 @@
+{{- if .Values.dragonfly.create }}
+apiVersion: dragonflydb.io/v1alpha1
+kind: Dragonfly
+metadata:
+  name: {{ .Values.dragonfly.name }}
+  labels:
+    {{- include "slovolov.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.dragonfly.replicas }}
+  resources:
+    {{- toYaml .Values.dragonfly.resources | nindent 4 }}
+{{- end }}

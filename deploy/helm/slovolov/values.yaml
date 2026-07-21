@@ -1,0 +1,67 @@
+image:
+  repository: ghcr.io/vojtechpastyrik/slovolov
+  tag: ""            # defaults to Chart.appVersion
+  pullPolicy: IfNotPresent
+
+replicaCount: 2
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: false
+  className: nginx
+  annotations: {}
+    # cert-manager.io/cluster-issuer: letsencrypt-prod
+  host: slovolov.example.com
+  tls:
+    enabled: false
+    secretName: slovolov-tls
+
+# DragonflyDB is expected to be installed via the DragonflyDB Operator.
+# https://www.dragonflydb.io/docs/managing-dragonfly/operator/kubernetes-operator
+dragonfly:
+  # Whether to create a Dragonfly custom resource. Set false if you manage
+  # Dragonfly separately (e.g. shared instance in another namespace).
+  create: true
+  name: slovolov-cache
+  replicas: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 512Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+  # Address the app connects to. Defaults to `<name>.<namespace>:6379`.
+  addressOverride: ""
+
+openai:
+  # Provide via --set-string openai.apiKey=sk-... OR reference an existing secret.
+  apiKey: ""
+  existingSecret: ""
+  existingSecretKey: openai-api-key
+
+# One-off Job that fills the Dragonfly embedding cache from the baked-in corpus.
+# Runs on helm install/upgrade. Idempotent — skips words already cached.
+precompute:
+  enabled: true
+  corpusPath: /app/corpus/cs.txt
+  batch: 256
+  ttlSecondsAfterFinished: 3600
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+env: {}
+  # LOG_LEVEL: info

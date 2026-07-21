@@ -1,0 +1,42 @@
+name: Publish Helm chart
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'deploy/helm/**'
+      - '.github/workflows/chart.yml'
+    tags: ['v*']
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  CHART_PATH: deploy/helm/slovolov
+  # GHCR namespace must be lowercase.
+  CHART_REPO: ghcr.io/vojtechpastyrik/charts
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/setup-helm@v4
+        with:
+          version: latest
+
+      - name: Log in to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
+
+      - name: Package
+        id: package
+        run: |
+          out=$(helm package ${{ env.CHART_PATH }})
+          echo "file=${out##*: }" >> "$GITHUB_OUTPUT"
+
+      - name: Push
+        run: helm push "${{ steps.package.outputs.file }}" oci://${{ env.CHART_REPO }}

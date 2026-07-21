@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; background:#0f1013; }
+  ::selection{ background:#f4b942; color:#0f1013; }
+  a{ color:#f4b942; text-decoration:none; }
+  a:hover{ color:#ffcf6b; }
+  input{ font-family:inherit; }
+  @keyframes slv-pop{ 0%{ transform:scale(.94); opacity:0; } 60%{ transform:scale(1.02); } 100%{ transform:scale(1); opacity:1; } }
+  @keyframes slv-rise{ from{ transform:translateY(14px); opacity:0; } to{ transform:translateY(0); opacity:1; } }
+  @keyframes slv-fadein{ from{ opacity:0; } to{ opacity:1; } }
+</style>
+</helmet>
+<div style="min-height:100dvh; background:radial-gradient(120% 80% at 50% -10%, #191b21 0%, #0f1013 60%); color:#e9e9ec; font-family:'Space Grotesk',system-ui,-apple-system,sans-serif; display:flex; justify-content:center; -webkit-font-smoothing:antialiased;">
+  <div style="width:100%; max-width:468px; padding:0 16px 140px; position:relative;">
+
+    <header style="position:sticky; top:0; z-index:6; padding:16px 0 12px; background:linear-gradient(#0f1013 62%, rgba(15,16,19,0)); backdrop-filter:blur(2px);">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+        <div style="display:flex; align-items:baseline; gap:9px; min-width:0;">
+          <div style="font-weight:700; font-size:22px; letter-spacing:-.02em; background:linear-gradient(120deg,#4ea1ff,#f4b942 55%,#ff5a4d); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;">Slovolov</div>
+          <div style="font-family:'Space Mono',monospace; font-size:11px; color:#71757f; letter-spacing:.04em;">hádej tajné slovo</div>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px; flex:none;">
+          <div style="font-family:'Space Mono',monospace; font-size:12.5px; color:#8b8e97; padding:6px 10px; border:1px solid #262931; border-radius:999px; white-space:nowrap;">{{ guessCount }} {{ guessLabel }}</div>
+          <button type="button" onClick="{{ newGame }}" style="font-family:'Space Grotesk'; font-weight:600; font-size:13px; color:#e9e9ec; background:#1c1f26; border:1px solid #2c2f38; padding:7px 13px; border-radius:999px; cursor:pointer;" style-hover="background:#262a33; border-color:#3a3e49;">Nová hra</button>
+        </div>
+      </div>
+      <sc-if value="{{ showHint }}" hint-placeholder-val="{{ false }}">
+        <div style="margin-top:10px; font-family:'Space Mono',monospace; font-size:12px; color:#7f838d;">{{ hintLabel }}</div>
+      </sc-if>
+    </header>
+
+    <form onSubmit="{{ onFormSubmit }}" style="display:flex; gap:9px; margin-top:6px;">
+      <input ref="{{ setInputRef }}" value="{{ inputValue }}" onInput="{{ onInput }}" placeholder="Napiš slovo…" autoComplete="off" autoCapitalize="off" spellCheck="false" style="flex:1; min-width:0; background:#16181e; border:1px solid #2a2e37; color:#f2f2f4; font-size:16px; padding:14px 16px; border-radius:14px; outline:none;" style-focus="border-color:#4ea1ff; box-shadow:0 0 0 3px rgba(78,161,255,.15);" />
+      <button type="submit" style="flex:none; background:linear-gradient(150deg,#4ea1ff,#3b82f6); border:none; color:#fff; font-weight:700; font-size:16px; padding:0 20px; border-radius:14px; cursor:pointer; box-shadow:0 6px 18px rgba(59,130,246,.35);" style-hover="filter:brightness(1.08);" style-active="transform:translateY(1px);">Tip</button>
+    </form>
+
+    <sc-if value="{{ message }}" hint-placeholder-val="">
+      <div style="margin-top:10px; font-size:13px; color:#f0a04b; animation:slv-fadein .2s ease;">{{ message }}</div>
+    </sc-if>
+
+    <sc-if value="{{ lastRow }}" hint-placeholder-val="{{ false }}">
+      <div style="margin-top:20px;">
+        <div style="font-family:'Space Mono',monospace; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:#71757f; margin-bottom:8px;">Poslední tip</div>
+        <div key="{{ lastRow.order }}" style="position:relative; overflow:hidden; border-radius:15px; background:#181a20; height:62px; display:flex; align-items:center; border:1px solid #2a2e37; box-shadow:0 8px 26px rgba(0,0,0,.35); animation:slv-pop .34s cubic-bezier(.2,.8,.2,1);">
+          <div style="position:absolute; left:0; top:0; bottom:0; width:{{ lastRow.widthStr }}; background:{{ lastRow.color }}; opacity:.92;"></div>
+          <div style="position:relative; display:flex; align-items:center; justify-content:space-between; width:100%; padding:0 16px; gap:10px;">
+            <div style="display:flex; align-items:center; gap:11px; min-width:0;">
+              <span style="font-family:'Space Mono',monospace; font-size:12px; font-weight:700; color:#0f1013; background:rgba(255,255,255,.82); width:24px; height:24px; border-radius:7px; display:flex; align-items:center; justify-content:center; flex:none;">{{ lastRow.order }}</span>
+              <span style="font-size:19px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-shadow:0 1px 3px rgba(0,0,0,.5);">{{ lastRow.word }}</span>
+            </div>
+            <span style="font-family:'Space Mono',monospace; font-size:17px; font-weight:700; text-shadow:0 1px 3px rgba(0,0,0,.55); flex:none;">{{ lastRow.rankLabel }}</span>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ hasGuesses }}" hint-placeholder-val="{{ true }}">
+      <div style="font-family:'Space Mono',monospace; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:#71757f; margin:24px 0 10px;">Žebříček — od nejteplejšího</div>
+    </sc-if>
+
+    <div ref="{{ setListRef }}" style="display:flex; flex-direction:column; gap:8px;">
+      <sc-for list="{{ rows }}" as="row" hint-placeholder-count="5">
+        <div data-word="{{ row.word }}" style="position:relative; overflow:hidden; border-radius:13px; background:#16181e; height:52px; display:flex; align-items:center; border:1px solid #22252d;">
+          <div style="position:absolute; left:0; top:0; bottom:0; width:{{ row.widthStr }}; background:{{ row.color }}; opacity:.88;"></div>
+          <div style="position:relative; display:flex; align-items:center; justify-content:space-between; width:100%; padding:0 14px; gap:10px;">
+            <div style="display:flex; align-items:center; gap:10px; min-width:0;">
+              <span style="font-family:'Space Mono',monospace; font-size:11px; font-weight:700; color:#c9ccd3; background:rgba(255,255,255,.1); width:22px; height:22px; border-radius:6px; display:flex; align-items:center; justify-content:center; flex:none;">{{ row.order }}</span>
+              <span style="font-size:16px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-shadow:0 1px 2px rgba(0,0,0,.5);">{{ row.word }}</span>
+            </div>
+            <span style="font-family:'Space Mono',monospace; font-size:15px; font-weight:700; text-shadow:0 1px 2px rgba(0,0,0,.55); flex:none;">{{ row.rankLabel }}</span>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+
+    <sc-if value="{{ isEmpty }}" hint-placeholder-val="{{ false }}">
+      <div style="margin-top:40px; text-align:center; color:#6b6f78; animation:slv-fadein .3s ease;">
+        <div style="font-size:15px; line-height:1.6; max-width:300px; margin:0 auto;">Napiš jakékoliv slovo a zjisti, jak blízko jsi tajnému slovu. Čím teplejší barva a delší proužek, tím blíž.</div>
+      </div>
+    </sc-if>
+  </div>
+
+  <sc-if value="{{ won }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed; inset:0; z-index:20; display:flex; align-items:center; justify-content:center; padding:24px; background:rgba(10,11,14,.72); backdrop-filter:blur(6px); animation:slv-fadein .3s ease;">
+      <div style="width:100%; max-width:360px; text-align:center; background:#16181e; border:1px solid #2c303a; border-radius:22px; padding:34px 26px; box-shadow:0 24px 70px rgba(0,0,0,.6); animation:slv-pop .4s cubic-bezier(.2,.8,.2,1);">
+        <div style="font-family:'Space Mono',monospace; font-size:12px; letter-spacing:.18em; text-transform:uppercase; color:#f4b942;">Uhodl jsi!</div>
+        <div style="font-size:40px; font-weight:700; letter-spacing:-.03em; margin:10px 0 6px; background:linear-gradient(120deg,#4ea1ff,#f4b942 55%,#ff5a4d); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;">{{ targetWord }}</div>
+        <div style="font-size:15px; color:#a7abb4; line-height:1.5;">{{ winCountLabel }}</div>
+        <button type="button" onClick="{{ newGame }}" style="margin-top:22px; width:100%; background:linear-gradient(150deg,#4ea1ff,#3b82f6); border:none; color:#fff; font-family:'Space Grotesk'; font-weight:700; font-size:16px; padding:14px; border-radius:14px; cursor:pointer; box-shadow:0 8px 22px rgba(59,130,246,.4);" style-hover="filter:brightness(1.08);" style-active="transform:translateY(1px);">Hrát znovu</button>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{
+  &quot;$preview&quot;: { &quot;width&quot;: 430, &quot;height&quot;: 820 },
+  &quot;showLetterHint&quot;: { &quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: false, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Hra&quot; },
+  &quot;confetti&quot;: { &quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: true, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Hra&quot; },
+  &quot;colorScheme&quot;: { &quot;editor&quot;: &quot;enum&quot;, &quot;default&quot;: &quot;klasik&quot;, &quot;options&quot;: [&quot;klasik&quot;, &quot;oceán&quot;, &quot;západ slunce&quot;], &quot;tsType&quot;: &quot;string&quot;, &quot;section&quot;: &quot;Teploměr&quot; }
+}">
+class Component extends DCLogic {
+  constructor(props){
+    super(props);
+    this.TOTAL = 5000;
+    this.datasets = [
+      { theme:'moře', words:['moře','oceán','voda','vlny','pláž','písek','příboj','slaná','hloubka','modrá','loď','ryba','racek','mušle','potápění','plavání','dovolená','slunce','léto','horizont','přístav','maják','útes','korál','delfín','velryba','žralok','medúza','kotva','plachetnice','vlna','bouře','vítr','sůl','jachta','potápěč','laguna','záliv','ostrov','pobřeží','břeh','příliv','odliv','mělčina','dno','kapitán','námořník','rybář','síť','chaluha','krab','chobotnice','hvězdice','želva','tuleň','pelikán','kompas','mapa','plavba','obzor','nebe','mrak','déšť','teplo','vlhkost','jezero','řeka','potok','rybník','vodopád','bazén','koupání','osvěžení','relax','klid','příroda','krajina','daleko'] },
+      { theme:'hudba', words:['hudba','píseň','melodie','zpěv','rytmus','nota','tón','akord','kytara','klavír','housle','buben','kapela','koncert','zpěvák','skladba','refrén','sluchátka','rádio','tanec','orchestr','dirigent','struna','flétna','trumpeta','saxofon','basa','mikrofon','pódium','festival','album','hlas','harmonie','skladatel','nálada','umění','emoce','poslech','vinyl','reproduktor'] },
+      { theme:'škola', words:['škola','učitel','žák','třída','lavice','tabule','kniha','sešit','tužka','pero','úkol','zkouška','známka','vysvědčení','přestávka','zvonek','chodba','ředitel','matematika','čeština','dějepis','tělocvik','družina','aktovka','penál','guma','pravítko','spolužák','hřiště','jídelna','učení','vzdělání','předmět','rozvrh','poznámka','test','diktát','čtení','psaní','vědomosti'] }
+    ];
+    const di = 0;
+    const seed = [
+      this._mk(di,'voda',1), this._mk(di,'loď',2), this._mk(di,'slunce',3), this._mk(di,'auto',4)
+    ];
+    this.state = { di, guesses: seed, input:'', message:'' };
+    this._prevWon = false;
+    this._prevRects = {};
+  }
+
+  norm(w){ return (w||'').toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g,''); }
+
+  hashRank(n){ let h=0; for(let i=0;i<n.length;i++){ h=(h*31+n.charCodeAt(i))>>>0; } const lo=Math.floor(this.TOTAL*0.16), hi=this.TOTAL-1; return lo + (h % (hi-lo)); }
+
+  lookup(di, raw){
+    const ds=this.datasets[di]; const n=this.norm(raw);
+    const idx=ds.words.findIndex(x=>this.norm(x)===n);
+    if(idx>=0) return { display:ds.words[idx], rank:idx+1 };
+    return { display:raw.toLowerCase().trim(), rank:this.hashRank(n) };
+  }
+
+  _mk(di, raw, order){ const r=this.lookup(di,raw); return { word:r.display, rank:r.rank, order }; }
+
+  heat(rank){ return Math.max(0.02, 1 - Math.log(rank)/Math.log(this.TOTAL)); }
+
+  color(p){
+    const scheme = this.props.colorScheme ?? 'klasik';
+    let h, s=82, l=52;
+    if(scheme==='oceán'){ h = 250 + (165-250)*p; s=70; }
+    else if(scheme==='západ slunce'){ h = 300 + (25-300)*p; s=80; }
+    else { h = p<0.5 ? 210+(55-210)*(p/0.5) : 55+(8-55)*((p-0.5)/0.5); }
+    return `hsl(${h.toFixed(0)} ${s}% ${l}%)`;
+  }
+
+  plural(n, one, few, many){ return n===1?one : (n>=2&&n<=4?few:many); }
+
+  submit = () => {
+    const raw=(this.state.input||'').trim();
+    if(!raw) return;
+    const n=this.norm(raw);
+    if(this.state.guesses.some(g=>this.norm(g.word)===n)){
+      this.setState({ message:'Tohle slovo už jsi tipoval.', input:'' });
+      this.inputEl && this.inputEl.focus();
+      return;
+    }
+    const r=this.lookup(this.state.di, raw);
+    const order=this.state.guesses.length+1;
+    this.setState(s=>({ guesses:[...s.guesses, { word:r.display, rank:r.rank, order }], input:'', message:'' }),
+      ()=>{ this.inputEl && this.inputEl.focus(); });
+  };
+
+  onFormSubmit = (e) => { e.preventDefault(); this.submit(); };
+  onInput = (e) => this.setState({ input:e.target.value });
+  setInputRef = (el) => { this.inputEl = el; };
+  setListRef = (el) => { this.listEl = el; };
+
+  newGame = () => {
+    let di=this.state.di;
+    if(this.datasets.length>1){ while(di===this.state.di) di=Math.floor(Math.random()*this.datasets.length); }
+    this._prevWon=false; this._prevRects={};
+    this.setState({ di, guesses:[], input:'', message:'' }, ()=>{ this.inputEl && this.inputEl.focus(); });
+  };
+
+  componentDidMount(){ this._recordRects(); }
+
+  componentDidUpdate(){
+    this._flip();
+    const won = this._isWon();
+    if(won && !this._prevWon && (this.props.confetti ?? true)) this._confetti();
+    this._prevWon = won;
+  }
+
+  _isWon(){ return this.state.guesses.some(g=>g.rank===1); }
+
+  _recordRects(){
+    const m={};
+    if(this.listEl) this.listEl.querySelectorAll('[data-word]').forEach(el=>{ m[el.getAttribute('data-word')]=el.getBoundingClientRect().top; });
+    this._prevRects=m;
+  }
+
+  _flip(){
+    if(!this.listEl) return;
+    const els=[...this.listEl.querySelectorAll('[data-word]')];
+    els.forEach(el=>{
+      const w=el.getAttribute('data-word');
+      const prev=this._prevRects[w];
+      const cur=el.getBoundingClientRect().top;
+      if(prev===undefined){
+        el.style.animation='slv-rise .34s cubic-bezier(.2,.8,.2,1)';
+      } else {
+        const dy=prev-cur;
+        if(Math.abs(dy)>1){
+          el.style.transition='none'; el.style.transform=`translateY(${dy}px)`;
+          requestAnimationFrame(()=>{ el.style.transition='transform .45s cubic-bezier(.2,.8,.2,1)'; el.style.transform=''; });
+        }
+      }
+    });
+    this._recordRects();
+  }
+
+  _confetti(){
+    const cv=document.createElement('canvas');
+    cv.style.cssText='position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:9999;';
+    document.body.appendChild(cv);
+    const ctx=cv.getContext('2d');
+    const dpr=Math.min(window.devicePixelRatio||1,2);
+    const W=cv.width=innerWidth*dpr, H=cv.height=innerHeight*dpr;
+    const cols=['#4ea1ff','#f4b942','#ff5a4d','#3ddc97','#c77dff'];
+    const N=160, P=[];
+    for(let i=0;i<N;i++) P.push({ x:W/2+(Math.random()-.5)*W*.3, y:H*.35, vx:(Math.random()-.5)*16*dpr, vy:(Math.random()*-16-4)*dpr, g:0.5*dpr, r:(4+Math.random()*5)*dpr, c:cols[i%cols.length], a:1, rot:Math.random()*6, vr:(Math.random()-.5)*.4 });
+    let start=null;
+    const step=(t)=>{ if(!start)start=t; const dt=t-start; ctx.clearRect(0,0,W,H);
+      P.forEach(p=>{ p.vy+=p.g; p.x+=p.vx; p.y+=p.vy; p.vx*=0.99; p.rot+=p.vr; if(dt>1400)p.a-=0.02; ctx.save(); ctx.globalAlpha=Math.max(0,p.a); ctx.translate(p.x,p.y); ctx.rotate(p.rot); ctx.fillStyle=p.c; ctx.fillRect(-p.r,-p.r*.6,p.r*2,p.r*1.2); ctx.restore(); });
+      if(dt<2600) requestAnimationFrame(step); else cv.remove();
+    };
+    requestAnimationFrame(step);
+  }
+
+  renderVals(){
+    const ds=this.datasets[this.state.di];
+    const g=this.state.guesses;
+    const rows=g.map(x=>{ const p=this.heat(x.rank); return { word:x.word, order:x.order, rank:x.rank, rankLabel:'#'+x.rank, widthStr:(4+p*96).toFixed(1)+'%', color:this.color(p) }; });
+    rows.sort((a,b)=>a.rank-b.rank);
+    let lastRow=null;
+    if(g.length){ const last=g[g.length-1]; lastRow=rows.find(r=>r.order===last.order); }
+    const won=this._isWon();
+    const target=ds.words[0];
+    const n=g.length;
+    const winCountLabel = 'Trefa na '+n+' '+this.plural(n,'tip','tipy','tipů')+'.';
+    const tl=target.length;
+    const hintLabel = 'Tajné slovo má '+tl+' '+this.plural(tl,'písmeno','písmena','písmen')+'.';
+    return {
+      guessCount:n,
+      guessLabel:this.plural(n,'tip','tipy','tipů'),
+      rows, lastRow,
+      hasGuesses:n>0,
+      isEmpty:n===0,
+      won, targetWord:target, winCountLabel,
+      message:this.state.message,
+      inputValue:this.state.input,
+      onInput:this.onInput, onFormSubmit:this.onFormSubmit,
+      submit:this.submit, newGame:this.newGame,
+      setInputRef:this.setInputRef, setListRef:this.setListRef,
+      showHint:(this.props.showLetterHint ?? false),
+      hintLabel
+    };
+  }
+}
+</script>
+</body>
+</html>
