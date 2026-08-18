@@ -63,12 +63,12 @@ See `values.yaml`. Common overrides:
 ```
 
 Per-job model overrides — empty means the Go client's default (Opus for the
-secret word, Sonnet for the bands, Haiku for guess scoring):
+secret word, Sonnet for the bands and for guess scoring):
 
 ```
 --set anthropic.model=claude-opus-5
 --set anthropic.bulkModel=claude-sonnet-5
---set anthropic.guessModel=claude-haiku-4-5
+--set anthropic.guessModel=claude-sonnet-5
 ```
 
 ## Rebuilding a puzzle by hand

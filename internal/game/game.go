@@ -492,20 +492,29 @@ func (s *Service) resolveScore(ctx context.Context, date, secret, key, typed str
 		return 0, "", err
 	}
 
-	// Cache under both spellings so neither form pays for the model twice,
-	// and remember the canonical form for every later player.
-	if err := s.store.SetScore(ctx, date, key, guess.Score); err != nil {
+	// The canonical spelling is the word's identity, so its key decides the
+	// score: the first writer wins and every later racer adopts that value.
+	// Without this a word scored twice in the same moment would show up at two
+	// different ranks for two different players.
+	canonicalKey := Normalize(guess.Word)
+	if canonicalKey == "" {
+		canonicalKey = key
+	}
+	score, err = s.store.SetScoreIfAbsent(ctx, date, canonicalKey, guess.Score)
+	if err != nil {
 		return 0, "", err
 	}
-	if canonKey := Normalize(guess.Word); canonKey != "" && canonKey != key {
-		if err := s.store.SetScore(ctx, date, canonKey, guess.Score); err != nil {
+
+	// Mirror onto the typed spelling so neither form pays for the model twice.
+	if canonicalKey != key {
+		if err := s.store.SetScore(ctx, date, key, score); err != nil {
 			return 0, "", err
 		}
 	}
 	if err := s.store.SetCanonical(ctx, date, key, guess.Word); err != nil {
 		return 0, "", err
 	}
-	return guess.Score, guess.Word, nil
+	return score, guess.Word, nil
 }
 
 // sanitize keeps the player's spelling (diacritics included) but drops

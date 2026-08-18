@@ -239,6 +239,22 @@ func (s *Store) SetScore(ctx context.Context, date, word string, score float64) 
 	return s.rdb.Set(ctx, scoreKey(date, word), score, dailyTTL).Err()
 }
 
+// SetScoreIfAbsent stores a freshly scored word only if nobody got there first,
+// and returns whichever score ended up in the cache. Scoring is not
+// deterministic, so two players guessing the same unseen word at the same
+// moment would otherwise each keep their own answer and see the same word at
+// two different ranks.
+func (s *Store) SetScoreIfAbsent(ctx context.Context, date, word string, score float64) (float64, error) {
+	won, err := s.rdb.SetNX(ctx, scoreKey(date, word), score, dailyTTL).Result()
+	if err != nil {
+		return 0, err
+	}
+	if won {
+		return score, nil
+	}
+	return s.GetScore(ctx, date, word)
+}
+
 // --- per-session guess tracking ---
 //
 // The guess count that feeds the stats is kept server-side, one SET per player

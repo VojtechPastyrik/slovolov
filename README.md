@@ -95,7 +95,7 @@ cd .. && go run ./cmd/server
 | `ANTHROPIC_API_KEY` | — | required |
 | `ANTHROPIC_MODEL` | `claude-opus-5` | picks the secret word and its closest neighbours |
 | `ANTHROPIC_BULK_MODEL` | `claude-sonnet-5` | fills the ranking bands (most of the calls) |
-| `ANTHROPIC_GUESS_MODEL` | `claude-haiku-4-5` | scores a guess that is not on the list |
+| `ANTHROPIC_GUESS_MODEL` | `claude-sonnet-5` | scores a guess that is not on the list |
 | `PUZZLE_TIMEZONE` | `Europe/Prague` | which calendar day or week a request belongs to |
 | `REDIS_ADDR` | `127.0.0.1:6379` | Dragonfly/Redis address |
 | `REDIS_PASSWORD` | — | optional |
@@ -140,11 +140,18 @@ work:
 | --- | --- | --- | --- |
 | Pick the secret | 1 | Opus | on — this one call sets up the whole puzzle |
 | Fill the bands | 11 | Sonnet | off, low effort — listing nouns needs no deliberation |
-| Score a guess | per unseen word | Haiku | off |
+| Score a guess | per unseen word | Sonnet | off |
 
 Thinking is billed at output rates and is **on by default** on the Opus tier,
 so the two bulk jobs turn it off explicitly. Off-list guesses are cached per
-puzzle and shared across players, so a popular word is paid for once.
+puzzle and shared across players, so a popular word is paid for once — which
+also means the call volume is bounded by distinct words guessed, not by players.
+That is why guess scoring does not run on the cheapest model: the score becomes
+a rank, and the saving would be pennies against a visibly wrong ranking.
+
+Filling that cache is guarded by `SETNX`, so two players guessing the same
+unseen word at the same moment adopt one score between them rather than each
+keeping their own.
 
 Every API call logs its token usage (`llm <model>: in= out= cache_read=`), so
 the bill is attributable to a job and a model rather than showing up only on

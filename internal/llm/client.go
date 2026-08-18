@@ -29,9 +29,14 @@ var ErrUnknownWord = errors.New("unknown word")
 // a dozen calls — the bulk of the bill. Scoring a guess rates a single word and
 // runs once per unseen word per day, so it is the one that scales with players.
 const (
-	defaultModel      = "claude-opus-5"
-	defaultBulkModel  = "claude-sonnet-5"
-	defaultGuessModel = "claude-haiku-4-5"
+	defaultModel     = "claude-opus-5"
+	defaultBulkModel = "claude-sonnet-5"
+	// Scoring a guess looks cheap enough for the smallest model, but it is not:
+	// the score becomes a rank, and a noisy rating puts an unrelated word in the
+	// top of the ranking. It is also cached per word per puzzle across all
+	// players, so the call volume is bounded by distinct words guessed — the
+	// saving from a smaller model here is pennies and the cost is correctness.
+	defaultGuessModel = "claude-sonnet-5"
 )
 
 // Client talks to the Claude API.
@@ -455,8 +460,9 @@ Vrať JSON:
 		W     string  `json:"w"`
 		S     float64 `json:"s"`
 	}
-	// Rating one word against another: the cheapest model, no effort parameter
-	// (Haiku rejects it), no thinking.
+	// No thinking: the judgement is one comparison, not a chain of reasoning.
+	// Effort is left at the model default — with thinking off it barely moves
+	// the bill for a reply this small, and this number becomes a rank.
 	cfg := call{model: c.guessModel, maxTokens: 1000}
 	if err := c.completeJSON(ctx, cfg, prompt, &out); err != nil {
 		return Guess{}, fmt.Errorf("score %q: %w", guess, err)
