@@ -5,7 +5,7 @@ go 1.26.5
 require (
 	github.com/anthropics/anthropic-sdk-go v1.63.1
 	github.com/redis/go-redis/v9 v9.21.0
-	golang.org/x/text v0.40.0
+	golang.org/x/text v0.41.0
 )
 
 require (
