@@ -436,24 +436,51 @@ type Guess struct {
 	Score float64
 }
 
-// ScoreGuess rates a word that is not part of the stored ranking. The score
-// uses the same 0-100 scale, so the rank falls out of the existing ZSET.
-func (c *Client) ScoreGuess(ctx context.Context, secret, guess string) (Guess, error) {
-	prompt := fmt.Sprintf(`Tajné slovo je „%s“. Hráč tipuje slovo „%s“.
+// Anchor is one already-ranked word shown to the model as a reference point
+// when it scores a guess.
+type Anchor struct {
+	Word  string
+	Score float64
+}
 
-Ohodnoť blízkost tipu k tajnému slovu na stupnici 0 až 100:
+// ScoreGuess rates a word that is not part of the stored ranking, on the same
+// 0-100 scale so the rank falls out of the existing ZSET.
+//
+// The ranking itself was built by comparison — the model saw a whole band at
+// once and put it in order. A guess arrives alone, and rating it in isolation
+// is a different, harder task: nothing tells the model that "pekař" already sits
+// near the top, so "pekařka" can land hundreds of ranks away from it. Passing a
+// handful of ranked words with their scores turns the absolute judgement back
+// into a comparison against fixed points.
+func (c *Client) ScoreGuess(ctx context.Context, secret, guess string, anchors []Anchor) (Guess, error) {
+	scale := `Ohodnoť blízkost tipu k tajnému slovu na stupnici 0 až 100:
 - 90-100: okamžitá asociace, prakticky totéž téma,
 - 70-90: silná souvislost (typický kontext, část celku, nadřazený či podřazený pojem),
 - 40-70: stejná oblast, ale bez bezprostřední souvislosti,
 - 10-40: jiná oblast, jen vzdálená souvislost,
-- 0-10: bez souvislosti.
+- 0-10: bez souvislosti.`
+
+	if len(anchors) > 0 {
+		var b strings.Builder
+		b.WriteString("Tato slova už v žebříčku jsou a mají tato skóre. Použij je jako měřítko a zasaď tip mezi ně tak, aby výsledek s nimi dával smysl:\n")
+		for _, a := range anchors {
+			fmt.Fprintf(&b, "- %s = %.1f\n", a.Word, a.Score)
+		}
+		b.WriteString("\nDrž se tohoto měřítka. Když je tip blízký některému z uvedených slov, musí mít podobné skóre jako ono.\n\n")
+		b.WriteString(scale)
+		scale = b.String()
+	}
+
+	prompt := fmt.Sprintf(`Tajné slovo je „%s“ (skóre 100). Hráč tipuje slovo „%s“.
+
+%s
 
 Hráč mohl slovo napsat bez diakritiky nebo v jiném pádě („zvire“, „psa“). Pokud je zřejmé, které české slovo myslí, ohodnoť ho a do „w“ vrať jeho základní tvar se správnou diakritikou (1. pád jednotného čísla u podstatných jmen).
 Nastav known na false jen tehdy, když nejde o české slovo vůbec (nesmysl, cizí slovo).
 Skóre vracej na jedno desetinné místo — hráč vidí přesné pořadí, takže na jemných rozdílech záleží.
 
 Vrať JSON:
-{"known": true, "w": "zvíře", "s": 37.4}`, secret, guess)
+{"known": true, "w": "zvíře", "s": 37.4}`, secret, guess, scale)
 
 	var out struct {
 		Known *bool   `json:"known"`

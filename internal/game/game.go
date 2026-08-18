@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
+	"hash/fnv"
 	"log"
 	"math"
 	"math/big"
@@ -472,6 +473,23 @@ func (s *Service) finish(ctx context.Context, id, session string, res *GuessResu
 	return res, nil
 }
 
+// anchorRanks are the positions whose words are shown to the model as reference
+// points when it scores a guess. They double each step: the gap between rank 3
+// and rank 8 is something a player feels, the gap between 800 and 900 is not, so
+// the calibration is spent where it changes the game.
+var anchorRanks = []int64{2, 4, 8, 16, 32, 64, 128, 256, 512, 1024}
+
+// jitter separates two guesses the model happened to rate identically. The
+// offset comes from the word itself, so a word always lands in the same place,
+// and it is orders of magnitude below the model's own resolution — it breaks
+// ties without reordering anything. Words inside the ranking do not need this:
+// their scores are laid out strictly decreasing when the puzzle is built.
+func jitter(word string, score float64) float64 {
+	h := fnv.New64a()
+	_, _ = h.Write([]byte(word))
+	return score + float64(h.Sum64()%1_000_000_000)*1e-12
+}
+
 // resolveScore returns the guess score and, when the model was consulted, the
 // canonical spelling it reported. The typed word goes to the model as-is:
 // the cache key is diacritics-stripped, and "zvire" is not a Czech word.
@@ -484,7 +502,12 @@ func (s *Service) resolveScore(ctx context.Context, date, secret, key, typed str
 		return 0, "", err
 	}
 
-	guess, err := s.llm.ScoreGuess(ctx, secret, typed)
+	anchors, err := s.anchors(ctx, date)
+	if err != nil {
+		return 0, "", err
+	}
+
+	guess, err := s.llm.ScoreGuess(ctx, secret, typed, anchors)
 	if errors.Is(err, llm.ErrUnknownWord) {
 		return 0, "", ErrUnknownWord
 	}
@@ -500,7 +523,7 @@ func (s *Service) resolveScore(ctx context.Context, date, secret, key, typed str
 	if canonicalKey == "" {
 		canonicalKey = key
 	}
-	score, err = s.store.SetScoreIfAbsent(ctx, date, canonicalKey, guess.Score)
+	score, err = s.store.SetScoreIfAbsent(ctx, date, canonicalKey, jitter(canonicalKey, guess.Score))
 	if err != nil {
 		return 0, "", err
 	}
@@ -515,6 +538,21 @@ func (s *Service) resolveScore(ctx context.Context, date, secret, key, typed str
 		return 0, "", err
 	}
 	return score, guess.Word, nil
+}
+
+// anchors reads the reference words handed to the model when it scores a guess.
+// A puzzle with no ranking yet simply gets none, and the model falls back to
+// the bare scale.
+func (s *Service) anchors(ctx context.Context, date string) ([]llm.Anchor, error) {
+	words, err := s.store.WordsAtRanks(ctx, date, anchorRanks)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]llm.Anchor, 0, len(words))
+	for _, w := range words {
+		out = append(out, llm.Anchor{Word: w.Word, Score: w.Sim})
+	}
+	return out, nil
 }
 
 // sanitize keeps the player's spelling (diacritics included) but drops

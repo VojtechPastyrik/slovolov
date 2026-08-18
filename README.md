@@ -21,8 +21,13 @@ Licensed under the [MIT License](LICENSE).
 3. The ranking is stored as a Redis sorted set (`daily:<id>:ranks`), the
    canonical spellings as a hash, and every listed word's score is pre-cached
    under `sim:<id>:<word>`. Guessing a listed word therefore costs no API call.
-4. A guess outside the list is scored once by the model on the same 0-100
-   scale and then cached for every other player of that puzzle.
+4. A guess outside the list is scored once by the model on the same 0-100 scale
+   and then cached for every other player of that puzzle. The model does not
+   judge it in isolation: it is shown ten already-ranked words with their scores,
+   spaced by doubling rank (2, 4, 8 … 1024), and places the guess against them.
+   Without those anchors a word can land hundreds of ranks from its own
+   diminutive, because the ranking was built by comparison and an isolated
+   rating is a different, harder task.
 5. Rank is `ZCOUNT (score +inf) + 1` — O(log N) — so on-list and off-list
    guesses share one consistent ordering. The lowest band reaches down to 0 so
    that a guess the model rates as unrelated still lands *inside* the ranking
@@ -151,7 +156,10 @@ a rank, and the saving would be pennies against a visibly wrong ranking.
 
 Filling that cache is guarded by `SETNX`, so two players guessing the same
 unseen word at the same moment adopt one score between them rather than each
-keeping their own.
+keeping their own. A guess score also carries a tiny offset derived from the
+word itself, so two guesses the model rated identically still land on different
+ranks -- words inside the ranking need no such thing, since `spread` lays their
+scores out strictly decreasing.
 
 Every API call logs its token usage (`llm <model>: in= out= cache_read=`), so
 the bill is attributable to a job and a model rather than showing up only on

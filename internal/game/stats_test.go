@@ -45,3 +45,28 @@ func TestSummariseBucketsByRange(t *testing.T) {
 		}
 	}
 }
+
+// The rank a player sees is read off the score, so two guesses the model rated
+// identically must still land on different ranks.
+func TestJitterSeparatesEqualScores(t *testing.T) {
+	a, b := jitter("pekařka", 40), jitter("pizza", 40)
+	if a == b {
+		t.Fatalf("two words with score 40 both jittered to %v", a)
+	}
+}
+
+func TestJitterIsStable(t *testing.T) {
+	if first, second := jitter("pizza", 40), jitter("pizza", 40); first != second {
+		t.Fatalf("same word jittered to %v then %v", first, second)
+	}
+}
+
+// The offset must be small enough that it never reorders words the model
+// actually placed apart — the model reports one decimal place.
+func TestJitterNeverReordersRealDifferences(t *testing.T) {
+	for _, word := range []string{"pekař", "pizza", "doprava", "chleba", "voda"} {
+		if got := jitter(word, 40); got < 40 || got >= 40.1 {
+			t.Fatalf("jitter(%q, 40) = %v, want inside [40, 40.1)", word, got)
+		}
+	}
+}

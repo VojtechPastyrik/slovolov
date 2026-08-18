@@ -202,6 +202,37 @@ func (s *Store) WordAtRank(ctx context.Context, date string, rank int64) (string
 	return res[0], nil
 }
 
+// WordsAtRanks returns the words sitting at the given 1-based ranks, together
+// with their scores. Ranks past the end of the ranking are skipped rather than
+// reported as an error — the caller wants whatever anchors exist.
+func (s *Store) WordsAtRanks(ctx context.Context, date string, ranks []int64) ([]WordSim, error) {
+	pipe := s.rdb.Pipeline()
+	cmds := make([]*redis.ZSliceCmd, 0, len(ranks))
+	for _, rank := range ranks {
+		if rank < 1 {
+			continue
+		}
+		cmds = append(cmds, pipe.ZRevRangeWithScores(ctx, ranksKey(date), rank-1, rank-1))
+	}
+	if _, err := pipe.Exec(ctx); err != nil {
+		return nil, err
+	}
+
+	out := make([]WordSim, 0, len(cmds))
+	for _, cmd := range cmds {
+		entries, err := cmd.Result()
+		if err != nil || len(entries) == 0 {
+			continue
+		}
+		word, ok := entries[0].Member.(string)
+		if !ok {
+			continue
+		}
+		out = append(out, WordSim{Word: word, Sim: entries[0].Score})
+	}
+	return out, nil
+}
+
 // Canonical resolves a diacritics-stripped key back to the proper Czech
 // spelling of a ranked word.
 func (s *Store) Canonical(ctx context.Context, date, normalized string) (string, error) {
