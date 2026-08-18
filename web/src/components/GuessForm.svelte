@@ -1,6 +1,11 @@
 <script>
   export let value = '';
   export let disabled = false;
+  // busy marks an in-flight guess. It must not disable the input: the browser
+  // blurs a focused element the moment it turns disabled, so the player would
+  // have to click back into the field after every guess (and on mobile the
+  // keyboard would close). Only the submit button dims.
+  export let busy = false;
   export let onSubmit = () => {};
 
   let inputEl;
@@ -12,7 +17,7 @@
   function submit(e) {
     e.preventDefault();
     const trimmed = value.trim();
-    if (!trimmed || disabled) return;
+    if (!trimmed || disabled || busy) return;
     onSubmit(trimmed);
     value = '';
     inputEl?.focus();
@@ -30,7 +35,7 @@
     spellcheck="false"
     {disabled}
   />
-  <button type="submit" {disabled}>Tip</button>
+  <button type="submit" disabled={disabled || busy}>Tip</button>
 </form>
 
 <style>

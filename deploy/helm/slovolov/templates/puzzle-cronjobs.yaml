@@ -1,0 +1,44 @@
+{{- /*
+One CronJob per puzzle mode. Each builds its puzzle just after it rolls over;
+the server generates on demand as a fallback, so a missed run only costs the
+first player some latency.
+*/}}
+{{- range $mode, $cfg := dict "day" .Values.daily "week" .Values.weekly }}
+{{- if $cfg.enabled }}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "slovolov.fullname" $ }}-{{ $mode }}
+  labels:
+    {{- include "slovolov.labels" $ | nindent 4 }}
+spec:
+  schedule: {{ $cfg.schedule | quote }}
+  timeZone: {{ $cfg.timeZone | quote }}
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: {{ $cfg.successfulJobsHistoryLimit }}
+  failedJobsHistoryLimit: {{ $cfg.failedJobsHistoryLimit }}
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: {{ $cfg.ttlSecondsAfterFinished }}
+      activeDeadlineSeconds: {{ $cfg.activeDeadlineSeconds }}
+      backoffLimit: 2
+      template:
+        metadata:
+          labels:
+            {{- include "slovolov.selectorLabels" $ | nindent 12 }}
+            app.kubernetes.io/component: puzzle-{{ $mode }}
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: puzzle
+              image: {{ include "slovolov.image" $ }}
+              imagePullPolicy: {{ $.Values.image.pullPolicy }}
+              command: ["/app/daily"]
+              args: ["-mode", "{{ $mode }}"]
+              env:
+                {{- include "slovolov.commonEnv" $ | nindent 16 }}
+              resources:
+                {{- toYaml $cfg.resources | nindent 16 }}
+{{- end }}
+{{- end }}

@@ -1,6 +1,8 @@
 async function jsonFetch(url, options = {}) {
   const res = await fetch(url, {
     ...options,
+    // The server counts guesses against a session cookie, so it has to travel.
+    credentials: 'same-origin',
     headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }
   });
   const body = await res.json().catch(() => ({}));
@@ -13,8 +15,10 @@ async function jsonFetch(url, options = {}) {
   return body;
 }
 
-export function newGame() {
-  return jsonFetch('/api/game', { method: 'POST' });
+const ENDPOINTS = { day: '/api/game/today', week: '/api/game/week' };
+
+export function current(mode = 'day') {
+  return jsonFetch(ENDPOINTS[mode] || ENDPOINTS.day);
 }
 
 export function guess(gameId, word) {
@@ -29,6 +33,14 @@ export function hint(gameId, { bestRank, exclude }) {
     method: 'POST',
     body: JSON.stringify({ bestRank, exclude })
   });
+}
+
+export function stats(gameId) {
+  return jsonFetch(`/api/game/${encodeURIComponent(gameId)}/stats`);
+}
+
+export function previous(mode = 'day') {
+  return jsonFetch(`${ENDPOINTS[mode] || ENDPOINTS.day}/previous`);
 }
 
 export function reveal(gameId) {

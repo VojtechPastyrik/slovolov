@@ -36,67 +36,46 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end -}}
 {{- end -}}
 
-{{- define "slovolov.openaiSecretName" -}}
-{{- if .Values.openai.existingSecret -}}
-{{ .Values.openai.existingSecret }}
+{{- define "slovolov.anthropicSecretName" -}}
+{{- if .Values.anthropic.existingSecret -}}
+{{ .Values.anthropic.existingSecret }}
 {{- else -}}
-{{ include "slovolov.fullname" . }}-openai
+{{ include "slovolov.fullname" . }}-anthropic
 {{- end -}}
 {{- end -}}
 
-{{- define "slovolov.openaiSecretKey" -}}
-{{- if .Values.openai.existingSecret -}}
-{{ .Values.openai.existingSecretKey }}
+{{- define "slovolov.anthropicSecretKey" -}}
+{{- if .Values.anthropic.existingSecret -}}
+{{ .Values.anthropic.existingSecretKey }}
 {{- else -}}
-openai-api-key
-{{- end -}}
-{{- end -}}
-
-{{- define "slovolov.cohereSecretName" -}}
-{{- if .Values.cohere.existingSecret -}}
-{{ .Values.cohere.existingSecret }}
-{{- else -}}
-{{ include "slovolov.fullname" . }}-cohere
-{{- end -}}
-{{- end -}}
-
-{{- define "slovolov.cohereSecretKey" -}}
-{{- if .Values.cohere.existingSecret -}}
-{{ .Values.cohere.existingSecretKey }}
-{{- else -}}
-cohere-api-key
+anthropic-api-key
 {{- end -}}
 {{- end -}}
 
 {{/*
-Render the embedding provider env block. Emits EMBED_PROVIDER plus the
-provider-specific key + optional model/input-type overrides. Skips
-providers that don't have credentials configured so a Deployment
-manifest doesn't reference missing secrets.
+Env block shared by the server Deployment and the daily CronJob: cache
+address, Claude credentials, and the puzzle timezone.
 */}}
-{{- define "slovolov.embedEnv" -}}
-- name: EMBED_PROVIDER
-  value: {{ .Values.embedProvider | quote }}
-{{- if or .Values.openai.apiKey .Values.openai.existingSecret }}
-- name: OPENAI_API_KEY
+{{- define "slovolov.commonEnv" -}}
+- name: REDIS_ADDR
+  value: {{ include "slovolov.dragonflyAddress" . | quote }}
+- name: PUZZLE_TIMEZONE
+  value: {{ .Values.puzzle.timezone | quote }}
+- name: ANTHROPIC_API_KEY
   valueFrom:
     secretKeyRef:
-      name: {{ include "slovolov.openaiSecretName" . }}
-      key: {{ include "slovolov.openaiSecretKey" . }}
+      name: {{ include "slovolov.anthropicSecretName" . }}
+      key: {{ include "slovolov.anthropicSecretKey" . }}
+{{- if .Values.anthropic.model }}
+- name: ANTHROPIC_MODEL
+  value: {{ .Values.anthropic.model | quote }}
 {{- end }}
-{{- if or .Values.cohere.apiKey .Values.cohere.existingSecret }}
-- name: COHERE_API_KEY
-  valueFrom:
-    secretKeyRef:
-      name: {{ include "slovolov.cohereSecretName" . }}
-      key: {{ include "slovolov.cohereSecretKey" . }}
-{{- if .Values.cohere.model }}
-- name: COHERE_MODEL
-  value: {{ .Values.cohere.model | quote }}
+{{- if .Values.anthropic.bulkModel }}
+- name: ANTHROPIC_BULK_MODEL
+  value: {{ .Values.anthropic.bulkModel | quote }}
 {{- end }}
-{{- if .Values.cohere.inputType }}
-- name: COHERE_INPUT_TYPE
-  value: {{ .Values.cohere.inputType | quote }}
-{{- end }}
+{{- if .Values.anthropic.guessModel }}
+- name: ANTHROPIC_GUESS_MODEL
+  value: {{ .Values.anthropic.guessModel | quote }}
 {{- end }}
 {{- end -}}

@@ -3,7 +3,8 @@
   export let secret = '';
   export let guessCount = 0;
   export let variant = 'win'; // 'win' | 'reveal'
-  export let onPlayAgain = () => {};
+  export let countdown = '';
+  export let onClose = () => {};
 
   $: eyebrow = variant === 'reveal' ? 'VZDAL SES' : 'UHODL JSI!';
   $: subtitle =
@@ -19,11 +20,21 @@
     <span class="eyebrow">{eyebrow}</span>
     <h1 class="secret">{secret}</h1>
     <p class="subtitle">{subtitle}</p>
-    <button type="button" class="again" on:click={onPlayAgain}>Hrát znovu</button>
+    {#if countdown}
+      <p class="next">Další slovo za {countdown}</p>
+    {/if}
+    <button type="button" class="again" on:click={onClose}>Zavřít</button>
   </div>
 </div>
 
 <style>
+  .next {
+    margin: 0 0 14px;
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    color: #8b8e97;
+  }
+
   .overlay {
     position: fixed;
     inset: 0;

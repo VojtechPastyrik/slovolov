@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prihorivahori
+  labels:
+    app: prihorivahori
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: prihorivahori
+  template:
+    metadata:
+      labels:
+        app: prihorivahori
+    spec:
+      containers:
+        - name: server
+          image: ghcr.io/vojtechpastyrik/prihorivahori:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: REDIS_ADDR
+              value: dragonfly:6379
+            - name: PUZZLE_TIMEZONE
+              value: Europe/Prague
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: prihorivahori
+                  key: anthropic-api-key
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 8080
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 8080
+            initialDelaySeconds: 15
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: prihorivahori
+spec:
+  selector:
+    app: prihorivahori
+  ports:
+    - port: 80
+      targetPort: 8080

@@ -1,0 +1,39 @@
+# Minimal single-replica DragonflyDB for development.
+# For production use the DragonflyDB Operator: https://www.dragonflydb.io/docs/managing-dragonfly/operator
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dragonfly
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dragonfly
+  template:
+    metadata:
+      labels:
+        app: dragonfly
+    spec:
+      containers:
+        - name: dragonfly
+          image: docker.dragonflydb.io/dragonflydb/dragonfly:latest
+          args: ["--logtostderr", "--maxmemory=1gb"]
+          ports:
+            - containerPort: 6379
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dragonfly
+spec:
+  selector:
+    app: dragonfly
+  ports:
+    - port: 6379
+      targetPort: 6379

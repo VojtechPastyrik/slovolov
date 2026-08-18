@@ -45,33 +45,54 @@ dragonfly:
   # Address the app connects to. Defaults to `<name>.<namespace>:6379`.
   addressOverride: ""
 
-# Embedding provider selection. Set to `cohere` to use Cohere v3
-# multilingual (recommended for Czech — less subword-prefix bias than
-# OpenAI on non-English text). Default `openai` uses text-embedding-3-large.
-embedProvider: openai
-
-openai:
-  # Provide via --set-string openai.apiKey=sk-... OR reference an existing secret.
+# Claude API credentials. The daily secret word, its ranked word list, and
+# scores for off-list guesses all come from the Claude API.
+anthropic:
+  # Provide via --set-string anthropic.apiKey=sk-ant-... OR reference an
+  # existing secret (ExternalSecret + 1Password in the Argo path).
   apiKey: ""
   existingSecret: ""
-  existingSecretKey: openai-api-key
-
-cohere:
-  # Provide via --set-string cohere.apiKey=... OR reference an existing secret.
-  apiKey: ""
-  existingSecret: ""
-  existingSecretKey: cohere-api-key
-  # Override the model / input type if needed. Defaults match the Go client.
+  existingSecretKey: anthropic-api-key
+  # Optional per-job model overrides; empty means the Go client's default.
+  # model picks the daily secret word (quality-critical, one call per puzzle).
+  # bulkModel fills the ranking bands (eleven calls per puzzle — most of the bill).
+  # guessModel rates a player's unseen guess (scales with players, not puzzles).
   model: ""
-  inputType: ""
+  bulkModel: ""
+  guessModel: ""
 
-# One-off Job that fills the Dragonfly embedding cache from the baked-in corpus.
-# Runs on helm install/upgrade. Idempotent — skips words already cached.
-precompute:
+puzzle:
+  # Calendar day used to pick the secret word, and when it rolls over.
+  timezone: Europe/Prague
+
+# CronJobs that build the puzzles just after they roll over. The server also
+# generates on demand if a job has not run, so these are a latency
+# optimisation rather than a hard dependency.
+#
+# `daily` is the everyday word, `weekly` a harder one that lasts a whole week
+# (rolls over Monday midnight).
+daily:
   enabled: true
-  corpusPath: /app/corpus/cs.txt
-  batch: 256
+  schedule: "2 0 * * *"
+  timeZone: Europe/Prague
+  # Generation is a handful of model calls; give it room but not forever.
+  activeDeadlineSeconds: 1800
   ttlSecondsAfterFinished: 3600
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+weekly:
+  enabled: true
+  schedule: "6 0 * * 1"
+  timeZone: Europe/Prague
+  activeDeadlineSeconds: 1800
+  ttlSecondsAfterFinished: 3600
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
   resources:
     requests:
       cpu: 100m

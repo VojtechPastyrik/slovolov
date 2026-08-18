@@ -1,4 +1,4 @@
-const TOTAL = 5000;
+const TOTAL = 2000;
 
 // pct = 1 - ln(rank) / ln(TOTAL), clamped to (0.02, 1].
 export function heat(rank) {

@@ -11,15 +11,14 @@ COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
 RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/server ./cmd/server
-RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/precompute ./cmd/precompute
+RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/daily ./cmd/daily
 
 FROM gcr.io/distroless/static-debian12:nonroot
 WORKDIR /app
 COPY --from=build /out/server /app/server
-COPY --from=build /out/precompute /app/precompute
-COPY corpus /app/corpus
+COPY --from=build /out/daily /app/daily
 COPY --from=web /web/dist /app/web/dist
-ENV CORPUS_PATH=/app/corpus/cs.txt STATIC_DIR=/app/web/dist HTTP_ADDR=:8080
+ENV STATIC_DIR=/app/web/dist HTTP_ADDR=:8080 PUZZLE_TIMEZONE=Europe/Prague
 EXPOSE 8080
 USER nonroot:nonroot
 ENTRYPOINT ["/app/server"]
