@@ -5,7 +5,7 @@ go 1.26.5
 require (
 	github.com/anthropics/anthropic-sdk-go v1.63.1
 	github.com/redis/go-redis/v9 v9.21.0
-	golang.org/x/text v0.40.0
+	golang.org/x/text v0.43.0
 )
 
 require (
@@ -21,5 +21,5 @@ require (
 	github.com/tidwall/sjson v1.2.5 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
 	go.yaml.in/yaml/v4 v4.0.0-rc.2 // indirect
-	golang.org/x/sync v0.22.0 // indirect
+	golang.org/x/sync v0.24.0 // indirect
 )
